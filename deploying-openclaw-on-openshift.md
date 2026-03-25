@@ -228,6 +228,14 @@ The full loop is working: Telegram → OpenClaw → llama-scout-17b → Telegram
 
 All manifests are in the [GitHub repo](https://github.com/nirjhar17/openclaw-on-openshift), numbered in apply order. The README has a full troubleshooting guide covering 12 errors we encountered along the way.
 
-> **Disclaimer:** This article reflects a personal learning exercise. The Kubernetes manifests, patterns, and debugging approaches described here are real and applicable to deploying any Node.js-based agent framework on OpenShift. Model names, API endpoints, and configurations may differ in your environment. Always verify container images and review security settings before deploying to production clusters.
+## About Me
 
-*Written by Nirjhar Jajodia — Platform Engineer exploring AI agent deployment on Kubernetes. Connect on [GitHub](https://github.com/nirjhar17).*
+I work on OpenShift, OpenShift AI, and observability solutions, focusing on simplifying complex setups into practical, repeatable steps for platform and development teams.
+
+GitHub: [github.com/nirjhar17](https://github.com/nirjhar17)
+
+LinkedIn: [linkedin.com/in/nirjhar-jajodia](https://linkedin.com/in/nirjhar-jajodia)
+
+## Disclaimer
+
+The views and opinions expressed in this article are my own and do not necessarily reflect the official policy or position of my employer. This guide is provided for educational purposes, and I make no warranties about the completeness, reliability, or accuracy of this information.
