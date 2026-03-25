@@ -271,7 +271,7 @@ data:
 Key settings:
 
 - **bind: "lan"** — makes the gateway listen on `0.0.0.0` (all interfaces). In Kubernetes, the kubelet probes, Service, and Route all hit the pod IP, not localhost. Without `lan`, the gateway only listens on `127.0.0.1` and nothing outside the container can reach it.
-- **dangerouslyAllowHostHeaderOriginFallback: true** — required when the Control UI is accessed via a Route (non-loopback). Without this, you get a startup error demanding explicit `allowedOrigins`. For production, replace this with an explicit `allowedOrigins` list.
+- **dangerouslyAllowHostHeaderOriginFallback: true** — this is a CORS (Cross-Origin Resource Sharing) setting for the Control UI. When a browser opens the Control UI, it sends an `Origin` header (e.g., `https://openclaw-openclaw.apps.rosa...`). OpenClaw validates this Origin against a whitelist to prevent cross-site request forgery (CSRF) attacks. When binding to `lan` (0.0.0.0), OpenClaw enforces this strictly — it refuses to start unless you either provide an explicit `allowedOrigins` list or set this fallback flag. With the fallback enabled, OpenClaw trusts the `Host` header from the incoming request as the allowed origin. This is acceptable for internal or development deployments behind an OpenShift Route. For production, replace this with `"allowedOrigins": ["https://your-route-hostname"]` so only your specific Route URL is trusted.
 - **tools.allow** — critical for smaller models. OpenClaw ships 27 tools by default, adding ~12,600 tokens of JSON schemas to every API call. For models like `llama-scout-17b`, this overwhelms the prompt. Restricting to 3 essential tools keeps the prompt manageable.
 - **api: "openai-completions"** — despite the name, this is the setting for `/v1/chat/completions`. Don't use `openai-responses` — that calls `/v1/responses` which LiteLLM doesn't support.
 - **channels.telegram.allowFrom** — an array of numeric Telegram user IDs. Only these users can talk to the bot.
@@ -279,9 +279,15 @@ Key settings:
 
 ## Step 5 — The Deployment
 
-The Deployment has two containers:
+The Deployment uses a standard Kubernetes pattern called **config seeding with an init container**. Here's why it's needed:
 
-**Init container** — runs first, copies `openclaw.json` and `AGENTS.md` from the ConfigMap into the PVC. This is necessary because OpenClaw modifies its own config at runtime (auto-generating a gateway token, adding metadata). The ConfigMap is read-only, but the PVC is read-write.
+OpenClaw expects its config file at `/.openclaw/openclaw.json` and it **writes back to that file** at runtime — it auto-generates a gateway token, adds metadata, and updates internal state. In Kubernetes, ConfigMaps are mounted **read-only**. If we mount the ConfigMap directly at `/.openclaw/openclaw.json`, OpenClaw crashes when it tries to write to it.
+
+The solution is a two-step process. First, an init container runs, copies the config from the read-only ConfigMap mount into the writable PVC. Then it exits. Second, the main container starts and finds a writable copy of the config on the PVC. It reads it, modifies it as needed, and runs normally.
+
+This is the same pattern used by databases (PostgreSQL, MySQL), content management systems (WordPress), and any application that needs to modify its own configuration. It's standard Kubernetes — not specific to OpenClaw.
+
+**Init container** — a lightweight UBI image that runs `cp` and exits. It has access to both the ConfigMap volume (read-only source) and the PVC volume (writable destination).
 
 **Main container** — runs OpenClaw. It finds the config at `/.openclaw/openclaw.json`, starts the gateway, connects to Telegram via long-polling, and begins listening.
 
@@ -544,4 +550,8 @@ The full loop is working: Telegram → OpenClaw → llama-scout-17b → Telegram
 - Add Llama-Guard safety filter
 - Try enabling more tools as the model proves capable
 
-All manifests are in the `manifests/` directory, numbered in apply order. Full troubleshooting guide and detailed explanations are in the README.
+All manifests are in the [manifests/ directory on GitHub](https://github.com/nirjhar17/openclaw-on-openshift), numbered in apply order. Full troubleshooting guide and detailed explanations are in the README.
+
+> **Disclaimer:** This article reflects a personal learning exercise. OpenClaw is a fictional project name used for demonstration purposes. The Kubernetes manifests, patterns, and debugging approaches described here are real and applicable to deploying any Node.js-based agent framework on OpenShift. Model names, API endpoints, and configurations may differ in your environment. Always verify container images and review security settings before deploying to production clusters.
+
+*Written by Nirjhar Jajodia — Platform Engineer exploring AI agent deployment on Kubernetes. Connect with me on [GitHub](https://github.com/nirjhar17).*

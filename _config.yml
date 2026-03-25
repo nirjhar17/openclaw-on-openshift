@@ -1,0 +1,5 @@
+title: OpenClaw on OpenShift
+description: Deploying an AI personal assistant on Red Hat OpenShift with Model as a Service
+remote_theme: pages-themes/minimal@v0.2.0
+plugins:
+  - jekyll-remote-theme
