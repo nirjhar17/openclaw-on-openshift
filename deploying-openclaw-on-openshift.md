@@ -1,8 +1,6 @@
 # Deploying OpenClaw on OpenShift with Model as a Service
 
-A friend of mine runs OpenClaw on a dedicated Mac. His setup is impressive — Telegram, Slack (chat and alerts channels), Gmail, Google Drive, GitHub with its own account, web search via Brave and Perplexity, and a "Second Brain" built from markdown docs auto-synced to a private GitHub repo. He uses GPT-5 as the primary model and manages the whole thing via Claude Code over SSH. He even does travel research with Google Maps pins shared with his son.
-
-I wanted to build something similar — in my own way. Instead of a dedicated Mac, I have an OpenShift cluster. Instead of GPT-5, my company provides Model as a Service. Here's how I got OpenClaw running on OpenShift and talking through Telegram.
+This guide walks through deploying OpenClaw — an open-source personal AI assistant framework — on Red Hat OpenShift, using an internally hosted LLM accessed via API and Telegram as the messaging channel.
 
 ## What is OpenClaw?
 
@@ -12,28 +10,19 @@ The onboard wizard creates a configuration file called `openclaw.json` that cont
 
 ## Why OpenShift?
 
-My friend's setup is tied to one machine. If it goes down, everything stops. OpenShift gives me automatic restarts via health probes, persistent storage via PVCs, network isolation via NetworkPolicies, and the ability to manage everything declaratively with YAML. No dedicated hardware needed.
+Running OpenClaw on a local machine ties it to a single device. If that machine goes down, the assistant goes with it. OpenShift gives you automatic restarts via health probes, persistent storage via PVCs, network isolation via NetworkPolicies, and the ability to manage everything declaratively with YAML. No dedicated hardware needed.
 
-## Choosing the Right Model
+## The Model
 
-My company's MaaS platform offers several models through a LiteLLM proxy. For an agent like OpenClaw, the most important capabilities are **function calling** and a large enough **context window** to handle the system prompt.
+This deployment uses **llama-scout-17b** (Llama 4 Scout), hosted internally on a separate OpenShift cluster and exposed through a LiteLLM proxy as Model as a Service (MaaS). We access it via a standard OpenAI-compatible API endpoint (`/v1/chat/completions`) — OpenClaw doesn't know or care that it's not talking to OpenAI.
 
-I initially chose **deepseek-r1-distill-qwen-14b** — it had the largest advertised context window (4M tokens) and supported function calling. But it turned out to have issues — the actual context window via LiteLLM was only 16K tokens, and the model leaked its internal reasoning process (showing `<think>` tags in responses).
+Key properties:
 
-The final choice was **llama-scout-17b**:
-
-- Function calling support
-- 327K token context window (verified working)
-- 17B parameters — clean responses without reasoning leakage
-- Fast inference (~2 second response time)
-
-The MaaS endpoint is OpenAI-compatible (`/v1/chat/completions`), which is exactly what OpenClaw expects. No adapter needed — just point it at the endpoint.
-
-I also noted some free supporting models for future use:
-
-- **Llama-Guard-3-1B** — safety filter layer (free)
-- **nomic-embed-text-v1-5** — semantic search for the Second Brain (free)
-- **Docling** — document conversion (free)
+- **17B parameters** — sufficient for agent tasks
+- **Function calling support** — required for OpenClaw to trigger tools like web search
+- **327K token context window** — large enough to handle the system prompt and conversation history
+- **Clean output** — no reasoning leakage or internal tags in responses
+- **~2 second inference time** — fast enough for conversational use via Telegram
 
 ## Understanding openclaw.json
 
