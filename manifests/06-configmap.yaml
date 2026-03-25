@@ -1,0 +1,76 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openclaw-config
+  namespace: openclaw
+data:
+  openclaw.json: |
+    {
+      "gateway": {
+        "mode": "local",
+        "port": 18789,
+        "bind": "lan",
+        "controlUi": {
+          "enabled": true,
+          "dangerouslyAllowHostHeaderOriginFallback": true
+        },
+        "auth": {
+          "mode": "token"
+        }
+      },
+      "agents": {
+        "defaults": {
+          "workspace": "/.openclaw/workspace",
+          "model": {
+            "primary": "maas/llama-scout-17b"
+          }
+        },
+        "list": [
+          {
+            "id": "main",
+            "default": true,
+            "identity": {
+              "name": "MyClaw",
+              "theme": "helpful assistant",
+              "emoji": "🤖"
+            },
+            "tools": {
+              "allow": ["web_search", "web_fetch", "session_status"]
+            }
+          }
+        ]
+      },
+      "models": {
+        "mode": "merge",
+        "providers": {
+          "maas": {
+            "baseUrl": "https://litellm-prod.apps.maas.redhatworkshops.io/v1",
+            "apiKey": "${OPENAI_API_KEY}",
+            "api": "openai-completions",
+            "models": [
+              {
+                "id": "llama-scout-17b",
+                "name": "Llama 4 Scout 17B",
+                "reasoning": false,
+                "input": ["text"],
+                "cost": { "input": 1, "output": 2, "cacheRead": 0, "cacheWrite": 0 },
+                "contextWindow": 327680,
+                "maxTokens": 8192
+              }
+            ]
+          }
+        }
+      },
+      "channels": {
+        "telegram": {
+          "enabled": true,
+          "botToken": "${TELEGRAM_BOT_TOKEN}",
+          "allowFrom": ["1486943219"]
+        }
+      }
+    }
+  AGENTS.md: |
+    You are MyClaw, a helpful personal AI assistant running on OpenShift.
+    You MUST always reply to the user. Never respond with NO_REPLY to a direct user message.
+    If a user says hello, greet them back. If they ask a question, answer it.
+    Be concise and friendly.

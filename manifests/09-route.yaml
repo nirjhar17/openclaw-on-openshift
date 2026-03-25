@@ -1,0 +1,13 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: openclaw
+  namespace: openclaw
+spec:
+  to:
+    kind: Service
+    name: openclaw
+  port:
+    targetPort: gateway
+  tls:
+    termination: edge
